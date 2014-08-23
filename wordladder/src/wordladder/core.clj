@@ -5,7 +5,7 @@
 (def alphabet (set (map char (range 97 123))))
 
 (defn read-word-set []
-	(set (with-open [rdr (reader "../word.list")]
+	(set (with-open [rdr (reader "C:/Users/am89198/Documents/Git Repos/dojos/AdamsWordKata/CodingDojoWeek42/word.list")]
 		(doall (line-seq rdr)
 			))))
 
@@ -34,17 +34,43 @@
    (filter listOrg listGen)
 )
 
-(defn inner-solve [current-word end-word path]
-	(if (= current-word end-word)
-		(conj path current-word) ;should only do if not yet added to path
-	  (let [generated-words (generate-next-words current-word path)
-	  	    valid-words (filter-words-in-list generated-words dictionary)]
+;(defn inner-solve [current-word end-word path]
+;	(if (= current-word end-word)
+;		(conj path current-word) ;should only do if not yet added to path
+;	  (let [generated-words (generate-next-words current-word path)
+;	  	    valid-words (filter-words-in-list generated-words dictionary)]
 	; HELP ME - need to mark the start of each path and go through them sequentially until we find an answer or run out.
 	; then we can take each start and run the above in parallel
-	(print valid-words)
-	(inner-solve (first valid-words) end-word (first (conj path valid-words))))))
+;	(print valid-words)
+;	(inner-solve (first valid-words) end-word (first (conj path valid-words))))))
+
+(defn reverse-link-list [end-word word-vector]
+	(loop [current-word end-word
+		path [end-word]]
+		(let [parent ((first (filter #(= current-word (% :word)) word-vector)) :parent)]
+			(if (= parent current-word)
+				path
+				(recur parent (cons parent path))
+			)
+		)
+	)
+)
+
+(defn inner-solve [start-word end-word word-vector]
+	(loop [index 1
+		 path word-vector]
+		 (let [current-word ((nth path index) :word)]
+		 	(if (some #(= end-word (% :word)) path)
+		 		(reverse-link-list end-word path)
+		 		(recur (inc index) (concat path (map #(hash-map :word %, :parent current-word) (generate-next-words current-word (map :word path)))))
+			)	
+		)
+	)
+)
 
 (defn solve [start-word end-word]
-	(inner-solve start-word end-word [])
-	  	    ; (recur (first valid-words) (conj path (first valid-words))))) 
+	(if (= start-word end-word)
+		start-word
+		(inner-solve start-word end-word (map #(hash-map :word %, :parent start-word) (conj (generate-next-words start-word []) start-word)))
+	)
 )

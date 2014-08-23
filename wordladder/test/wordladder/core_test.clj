@@ -35,6 +35,10 @@
 	(generate-next-words "bart" ["bart" "bait"]) =not=> (contains "bait")
 	)
 
+(fact "a link list containing parents and words can be reversed in the correct direction"
+	((= reverse-link-list "text" (vector({:word "text" :parent "test"} {:word "test" :parent "test"}))) ["test" "text"] )
+	)
+
 (fact "when start-word and end-word are the same then returs start-word"
 	(solve "a" "a") => ["a"]
 	)
