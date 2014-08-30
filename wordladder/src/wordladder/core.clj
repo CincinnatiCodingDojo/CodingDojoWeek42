@@ -5,7 +5,7 @@
 (def alphabet (set (map char (range 97 123))))
 
 (defn read-word-set []
-	(set (with-open [rdr (reader "C:/Users/am89198/Documents/Git Repos/dojos/AdamsWordKata/CodingDojoWeek42/word.list")]
+	(set (with-open [rdr (reader "word.list")]
 		(doall (line-seq rdr)
 			))))
 
