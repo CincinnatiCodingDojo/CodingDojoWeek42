@@ -1,6 +1,6 @@
 (ns wordladder.core
   (:require [clojure.java.io :refer :all]
-            [clojure.set])
+            [clojure.set :as cset])
   (:gen-class))
 
 (def alphabet (set (map char (range 97 123))))
@@ -10,6 +10,11 @@
     (doall (line-seq rdr)))))
 
 (def dictionary (read-word-set))
+
+(def filtered-dictionary
+  (memoize
+    (fn [word-length]
+      (set ( filter #(= word-length (count %)) dictionary )))))
 
 (defn find-word [word word-set]
   (contains? word-set word))
@@ -21,12 +26,17 @@
   (fn [element]
     (some #(= element %) previous-words)))
 
+(defn just-show-difference [candidate-words previous-words]
+  (let [word-length (-> candidate-words first count)]
+    (clojure.set/difference (set (filter (filtered-dictionary word-length) candidate-words)) (set previous-words))))
+
 (defn generate-next-words [word previous-words]
   (let [letters (apply vector word)
-        candidate-words (for [i (range 0 (count letters))
-                              replacement (all-other-letters (nth letters i))]
-                          (apply str (assoc letters i replacement)))]
-    (clojure.set/difference (set (filter dictionary candidate-words)) (set previous-words))))
+        candidate-words (doall (for [i (range 0 (count letters))
+                                     replacement (all-other-letters (nth letters i))]
+                                 (apply str (assoc letters i replacement))))]
+    (just-show-difference candidate-words previous-words)))
+
 
 (defn filter-words-in-list [listGen listOrg]
   (filter listOrg listGen))
@@ -50,14 +60,16 @@
         (recur parent (cons parent path))))))
 
 (defn inner-solve [start-word end-word word-vector]
+
   (loop [index 1
          path word-vector
-         word-set (map :word word-vector)]
+         word-set (map :word word-vector)
+         previous-words (set (map :word word-vector))]
     (let [current-word ((nth path index) :word)]
       (if (some #(= end-word %) word-set)
         (reverse-link-list end-word path)
-        (let [next-words (generate-next-words current-word (map :word path))]
-        (recur (inc index) (concat path (map #(hash-map :word %, :parent current-word) next-words)) next-words))))))
+        (let [next-words (generate-next-words current-word previous-words)]
+        (recur (inc index) (concat path (map #(hash-map :word %, :parent current-word) next-words)) next-words (cset/union previous-words next-words) ))))))
 
 (defn solve [start-word end-word]
   (if (= start-word end-word)
