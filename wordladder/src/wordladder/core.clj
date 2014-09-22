@@ -1,5 +1,6 @@
 (ns wordladder.core
-  (:require [clojure.java.io :refer :all])
+  (:require [clojure.java.io :refer :all]
+            [clojure.set])
   (:gen-class))
 
 (def alphabet (set (map char (range 97 123))))
@@ -21,10 +22,11 @@
     (some #(= element %) previous-words)))
 
 (defn generate-next-words [word previous-words]
-  (remove (vector-contains previous-words) (let [letters (apply vector word)]
-    (for [i (range 0 (count letters))
-          replacement (all-other-letters (nth letters i))]
-      (apply str (assoc letters i replacement))))))
+  (let [letters (apply vector word)
+        candidate-words (for [i (range 0 (count letters))
+                              replacement (all-other-letters (nth letters i))]
+                          (apply str (assoc letters i replacement)))]
+    (clojure.set/difference (set (filter dictionary candidate-words)) (set previous-words))))
 
 (defn filter-words-in-list [listGen listOrg]
   (filter listOrg listGen))
@@ -49,11 +51,13 @@
 
 (defn inner-solve [start-word end-word word-vector]
   (loop [index 1
-         path word-vector]
+         path word-vector
+         word-set (map :word word-vector)]
     (let [current-word ((nth path index) :word)]
-      (if (some #(= end-word (% :word)) path)
+      (if (some #(= end-word %) word-set)
         (reverse-link-list end-word path)
-        (recur (inc index) (concat path (map #(hash-map :word %, :parent current-word) (generate-next-words current-word (map :word path)))))))))
+        (let [next-words (generate-next-words current-word (map :word path))]
+        (recur (inc index) (concat path (map #(hash-map :word %, :parent current-word) next-words)) next-words))))))
 
 (defn solve [start-word end-word]
   (if (= start-word end-word)
